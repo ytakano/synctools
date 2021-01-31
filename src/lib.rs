@@ -8,6 +8,7 @@ extern crate alloc;
 pub mod lfstack;
 
 pub mod mcs;
+pub mod rwlock;
 
 #[cfg(test)]
 #[macro_use]
@@ -16,10 +17,11 @@ extern crate std;
 #[cfg(test)]
 mod tests {
     use crate::mcs;
+    use crate::rwlock;
     use std::sync::Arc;
     use std::vec::Vec;
 
-    const NUM_LOOP: usize = 1000000;
+    const NUM_LOOP: usize = 10000000;
     const NUM_THREADS: usize = 4;
 
     #[test]
@@ -65,7 +67,7 @@ mod tests {
                 } else {
                     for _ in 0..NUM_LOOP {
                         loop {
-                            if let Some(k) = stack0.get_mut().pop() {
+                            if let Some(_) = stack0.get_mut().pop() {
                                 break;
                             }
                         }
@@ -80,5 +82,40 @@ mod tests {
         }
 
         assert_eq!(stack.get_mut().pop(), None);
+    }
+
+    #[test]
+    fn test_rwlock() {
+        let n = Arc::new(rwlock::RwLock::new(0));
+        let mut v = Vec::new();
+
+        for _ in 0..(NUM_THREADS - 1) {
+            let n0 = n.clone();
+            let t = std::thread::spawn(move || {
+                for _ in 0..NUM_LOOP {
+                    let r = n0.read();
+                    assert_eq!(*r, 0);
+                }
+            });
+
+            v.push(t);
+        }
+
+        let n0 = n.clone();
+        let wr = std::thread::spawn(move || {
+            for _ in 0..NUM_LOOP {
+                {
+                    let mut r = n0.write();
+                    *r += 1;
+                    *r -= 1;
+                }
+            }
+        });
+
+        v.push(wr);
+
+        for t in v {
+            t.join().unwrap();
+        }
     }
 }
