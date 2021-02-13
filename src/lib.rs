@@ -1,10 +1,10 @@
 #![no_std]
 #![feature(asm)]
 
-#[cfg(feature = "AARCH64")]
+#[cfg(target_arch = "aarch64")]
 extern crate alloc;
 
-#[cfg(feature = "AARCH64")]
+#[cfg(target_arch = "aarch64")]
 pub mod lfstack;
 
 pub mod mcs;
@@ -49,7 +49,7 @@ mod tests {
         assert_eq!(NUM_LOOP * NUM_THREADS, *r);
     }
 
-    #[cfg(feature = "AARCH64")]
+    #[cfg(target_arch = "aarch64")]
     #[test]
     fn test_lfstack() {
         use crate::lfstack;
