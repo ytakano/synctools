@@ -13,7 +13,7 @@ pub struct StackHead<T> {
 }
 
 impl<T> StackHead<T> {
-    fn new() -> StackHead<T> {
+    const fn new() -> StackHead<T> {
         StackHead { head: null_mut() }
     }
 
