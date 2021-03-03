@@ -14,7 +14,7 @@ struct MCSNode<T> {
 }
 
 impl<T> MCSLock<T> {
-    pub fn new(v: T) -> MCSLock<T> {
+    pub const fn new(v: T) -> MCSLock<T> {
         MCSLock {
             last: AtomicPtr::new(null_mut()),
             data: UnsafeCell::new(v),

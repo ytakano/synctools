@@ -10,7 +10,7 @@ pub struct RwLock<T> {
 }
 
 impl<T> RwLock<T> {
-    pub fn new(v: T) -> RwLock<T> {
+    pub const fn new(v: T) -> RwLock<T> {
         RwLock {
             rcnt: AtomicUsize::new(0),
             wcnt: AtomicUsize::new(0),

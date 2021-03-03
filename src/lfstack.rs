@@ -93,7 +93,7 @@ pub struct LFStack<T> {
 }
 
 impl<T> LFStack<T> {
-    pub fn new() -> LFStack<T> {
+    pub const fn new() -> LFStack<T> {
         LFStack {
             data: UnsafeCell::new(StackHead::new()),
         }
