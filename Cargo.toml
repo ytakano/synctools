@@ -3,7 +3,13 @@ name = "synctools"
 version = "0.1.0"
 authors = ["Yuuki Takano <ytakanoster@gmail.com>"]
 edition = "2018"
-
+description = "Synchronization tools for no_std."
+repository = "https://github.com/ytakano/synctools/"
+keywords = ["no_std", "mutex", "rwlock" ]
+categories = [ "no-std", "embedded" ]
+license-file = "LICENSE"
+readme = "README.md"
+homepage = "https://ytakano.github.io/synctools/"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
