@@ -21,6 +21,7 @@ impl<T> MCSLock<T> {
         }
     }
 
+    /// acquire lock
     pub fn lock(&self) -> MCSLockGuard<T> {
         // set myself as the last node
         let mut guard = MCSLockGuard {
