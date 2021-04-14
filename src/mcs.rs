@@ -62,6 +62,11 @@ pub struct MCSLockGuard<'a, T> {
     mcs_lock: &'a MCSLock<T>,
 }
 
+impl<'a, T> MCSLockGuard<'a, T> {
+    /// unlock MCS lock
+    pub fn unlock(self) {}
+}
+
 impl<'a, T> Drop for MCSLockGuard<'a, T> {
     fn drop(&mut self) {
         // if next node is null and self is the last node

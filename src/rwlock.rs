@@ -56,8 +56,18 @@ pub struct RwLockReadGuard<'a, T> {
     rwlock: &'a RwLock<T>,
 }
 
+impl<'a, T> RwLockReadGuard<'a, T> {
+    /// unlock read lock
+    pub fn unlock(self) {}
+}
+
 pub struct RwLockWriteGuard<'a, T> {
     rwlock: &'a RwLock<T>,
+}
+
+impl<'a, T> RwLockWriteGuard<'a, T> {
+    /// unlock write lock
+    pub fn unlock(self) {}
 }
 
 unsafe impl<T> Sync for RwLock<T> {}
