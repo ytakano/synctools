@@ -8,9 +8,18 @@ pub struct MCSLock<T> {
     data: UnsafeCell<T>,
 }
 
-struct MCSNode<T> {
+pub struct MCSNode<T> {
     next: AtomicPtr<MCSNode<T>>,
     locked: AtomicBool,
+}
+
+impl<T> MCSNode<T> {
+    pub fn new() -> MCSNode<T> {
+        MCSNode {
+            next: AtomicPtr::new(null_mut()),
+            locked: AtomicBool::new(false),
+        }
+    }
 }
 
 impl<T> MCSLock<T> {
@@ -22,17 +31,17 @@ impl<T> MCSLock<T> {
     }
 
     /// acquire lock
-    pub fn lock(&self) -> MCSLockGuard<T> {
+    pub fn lock<'a>(&'a self, node: &'a mut MCSNode<T>) -> MCSLockGuard<T> {
+        node.next = AtomicPtr::new(null_mut());
+        node.locked = AtomicBool::new(false);
+
         // set myself as the last node
-        let mut guard = MCSLockGuard {
-            node: MCSNode {
-                next: AtomicPtr::new(null_mut()),
-                locked: AtomicBool::new(false),
-            },
+        let guard = MCSLockGuard {
+            node,
             mcs_lock: self,
         };
 
-        let ptr = &mut guard.node as *mut MCSNode<T>;
+        let ptr = guard.node as *mut MCSNode<T>;
         let prev = self.last.swap(ptr, Ordering::Relaxed);
 
         // if prev is null then nobody is trying to acquire lock,
@@ -58,7 +67,7 @@ unsafe impl<T> Sync for MCSLock<T> {}
 unsafe impl<T> Send for MCSLock<T> {}
 
 pub struct MCSLockGuard<'a, T> {
-    node: MCSNode<T>,
+    node: &'a mut MCSNode<T>,
     mcs_lock: &'a MCSLock<T>,
 }
 
@@ -72,7 +81,7 @@ impl<'a, T> Drop for MCSLockGuard<'a, T> {
         // if next node is null and self is the last node
         // set the last node to null
         if self.node.next.load(Ordering::Relaxed) == null_mut() {
-            let ptr = &mut self.node as *mut MCSNode<T>;
+            let ptr = self.node as *mut MCSNode<T>;
             if let Ok(_) = self.mcs_lock.last.compare_exchange(
                 ptr,
                 null_mut(),

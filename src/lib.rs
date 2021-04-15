@@ -10,7 +10,7 @@
 //! use std::sync::Arc;
 //! use std::vec::Vec;
 //!
-//! const NUM_LOOP: usize = 10000000;
+//! const NUM_LOOP: usize = 1000000;
 //! const NUM_THREADS: usize = 4;
 //!
 //! fn main() {
@@ -21,9 +21,10 @@
 //!     for _ in 0..NUM_THREADS {
 //!         let n0 = n.clone();
 //!         let t = std::thread::spawn(move || {
+//!         let mut node = mcs::MCSNode::new();
 //!             for _ in 0..NUM_LOOP {
 //!                 // lock and acquire the reference
-//!                 let mut r = n0.lock();
+//!                 let mut r = n0.lock(&mut node);
 //!
 //!                 // increment atomically
 //!                 *r += 1;
@@ -37,7 +38,8 @@
 //!         t.join().unwrap();
 //!     }
 //!
-//!     let r = n.lock();
+//!     let mut node = mcs::MCSNode::new();
+//!     let r = n.lock(&mut node);
 //!     assert_eq!(NUM_LOOP * NUM_THREADS, *r);
 //! }
 //! ```
@@ -51,7 +53,7 @@
 //! use std::sync::Arc;
 //! use std::vec::Vec;
 //!
-//! const NUM_LOOP: usize = 10000000;
+//! const NUM_LOOP: usize = 1000000;
 //! const NUM_THREADS: usize = 4;
 //!
 //! fn main() {
@@ -106,7 +108,7 @@
 //! use std::sync::Arc;
 //! use std::vec::Vec;
 //!
-//! const NUM_LOOP: usize = 10000000;
+//! const NUM_LOOP: usize = 1000000;
 //! const NUM_THREADS: usize = 4;
 //!
 //! #[cfg(target_arch = "aarch64")]
@@ -167,12 +169,14 @@ extern crate std;
 
 #[cfg(test)]
 mod tests {
+    use mcs::MCSLock;
+
     use crate::mcs;
     use crate::rwlock;
     use std::sync::Arc;
     use std::vec::Vec;
 
-    const NUM_LOOP: usize = 10000000;
+    const NUM_LOOP: usize = 1000000;
     const NUM_THREADS: usize = 4;
 
     #[test]
@@ -182,9 +186,10 @@ mod tests {
 
         for _ in 0..NUM_THREADS {
             let n0 = n.clone();
+            let mut node = mcs::MCSNode::new();
             let t = std::thread::spawn(move || {
                 for _ in 0..NUM_LOOP {
-                    let mut r = n0.lock();
+                    let mut r = n0.lock(&mut node);
                     *r += 1;
                 }
             });
@@ -196,7 +201,8 @@ mod tests {
             t.join().unwrap();
         }
 
-        let r = n.lock();
+        let mut node = mcs::MCSNode::new();
+        let r = n.lock(&mut node);
         assert_eq!(NUM_LOOP * NUM_THREADS, *r);
     }
 
