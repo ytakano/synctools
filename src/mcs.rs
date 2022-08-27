@@ -13,6 +13,12 @@ pub struct MCSNode<T> {
     locked: AtomicBool,
 }
 
+impl<T> Default for MCSNode<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> MCSNode<T> {
     pub fn new() -> MCSNode<T> {
         MCSNode {
@@ -46,7 +52,7 @@ impl<T> MCSLock<T> {
 
         // if prev is null then nobody is trying to acquire lock,
         // otherwise enqueue myself
-        if prev != null_mut() {
+        if !prev.is_null() {
             // set acquiring lock
             guard.node.locked.store(true, Ordering::Relaxed);
 
@@ -55,7 +61,9 @@ impl<T> MCSLock<T> {
             prev.next.store(ptr, Ordering::Relaxed);
 
             // spin until other thread set locked false
-            while guard.node.locked.load(Ordering::Relaxed) {}
+            while guard.node.locked.load(Ordering::Relaxed) {
+                core::hint::spin_loop()
+            }
         }
 
         fence(Ordering::Acquire);
@@ -80,20 +88,22 @@ impl<'a, T> Drop for MCSLockGuard<'a, T> {
     fn drop(&mut self) {
         // if next node is null and self is the last node
         // set the last node to null
-        if self.node.next.load(Ordering::Relaxed) == null_mut() {
+        if self.node.next.load(Ordering::Relaxed).is_null() {
             let ptr = self.node as *mut MCSNode<T>;
-            if let Ok(_) = self.mcs_lock.last.compare_exchange(
-                ptr,
-                null_mut(),
-                Ordering::Release,
-                Ordering::Relaxed,
-            ) {
+            if self
+                .mcs_lock
+                .last
+                .compare_exchange(ptr, null_mut(), Ordering::Release, Ordering::Relaxed)
+                .is_ok()
+            {
                 return;
             }
         }
 
         // other thread is entering lock and wait the execution
-        while self.node.next.load(Ordering::Relaxed) == null_mut() {}
+        while self.node.next.load(Ordering::Relaxed).is_null() {
+            core::hint::spin_loop()
+        }
 
         // make next thread executable
         let next = unsafe { &mut *self.node.next.load(Ordering::Relaxed) };

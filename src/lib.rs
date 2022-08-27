@@ -114,11 +114,11 @@
 //! #[cfg(target_arch = "aarch64")]
 //! fn main() {
 //!     // create a stack
-//!     let stack = Arc::new(lfstack::LFStack::<usize>::new());
+//!     let mut stack = Arc::new(lfstack::LFStack::<usize>::new());
 //!     let mut v = Vec::new();
 //!
 //!     for i in 0..NUM_THREADS {
-//!         let stack0 = stack.clone();
+//!         let mut stack0 = stack.clone();
 //!         let t = std::thread::spawn(move || {
 //!             if i & 1 == 0 { // even thread
 //!                 for j in 0..NUM_LOOP {
@@ -152,7 +152,6 @@
 //! ```
 
 #![no_std]
-#![feature(asm)]
 
 #[cfg(target_arch = "aarch64")]
 extern crate alloc;
@@ -169,8 +168,6 @@ extern crate std;
 
 #[cfg(test)]
 mod tests {
-    use mcs::MCSLock;
-
     use crate::mcs;
     use crate::rwlock;
     use std::sync::Arc;
@@ -210,11 +207,11 @@ mod tests {
     #[test]
     fn test_lfstack() {
         use crate::lfstack;
-        let stack = Arc::new(lfstack::LFStack::<usize>::new());
+        let mut stack = Arc::new(lfstack::LFStack::<usize>::new());
         let mut v = Vec::new();
 
         for i in 0..NUM_THREADS {
-            let stack0 = stack.clone();
+            let mut stack0 = stack.clone();
             let t = std::thread::spawn(move || {
                 if i & 1 == 0 {
                     for j in 0..NUM_LOOP {

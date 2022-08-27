@@ -39,10 +39,13 @@ impl<T> RwLock<T> {
         while self.rcnt.load(Ordering::Relaxed) > 0 {}
 
         loop {
-            while self.lock.load(Ordering::Relaxed) {}
-            if let Ok(_) =
-                self.lock
-                    .compare_exchange_weak(false, true, Ordering::Acquire, Ordering::Relaxed)
+            while self.lock.load(Ordering::Relaxed) {
+                core::hint::spin_loop()
+            }
+            if self
+                .lock
+                .compare_exchange_weak(false, true, Ordering::Acquire, Ordering::Relaxed)
+                .is_ok()
             {
                 break;
             }

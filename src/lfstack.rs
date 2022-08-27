@@ -1,5 +1,6 @@
 use alloc::boxed::Box;
-use core::ptr::null_mut;
+use alloc::sync::Arc;
+use core::{arch::asm, ptr::null_mut};
 
 #[repr(C)]
 struct Node<T> {
@@ -77,7 +78,7 @@ impl<T> StackHead<T> {
 impl<T> Drop for StackHead<T> {
     fn drop(&mut self) {
         let mut node = self.head;
-        while node != null_mut() {
+        while !node.is_null() {
             let n = unsafe { Box::from_raw(node) };
             node = n.next;
         }
@@ -99,7 +100,7 @@ impl<T> LFStack<T> {
         }
     }
 
-    pub fn get_mut(&self) -> &mut StackHead<T> {
+    pub fn get_mut<'a>(self: &'a mut Arc<Self>) -> &'a mut StackHead<T> {
         unsafe { &mut *self.data.get() }
     }
 }
