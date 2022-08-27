@@ -1,6 +1,6 @@
 [package]
 name = "synctools"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Yuuki Takano <ytakanoster@gmail.com>"]
 edition = "2021"
 description = "Synchronization tools for no_std."
@@ -9,7 +9,7 @@ keywords = ["no_std", "mutex", "rwlock" ]
 categories = [ "no-std", "embedded" ]
 license-file = "LICENSE"
 readme = "README.md"
-homepage = "https://ytakano.github.io/synctools/"
+homepage = "https://github.com/ytakano/synctools/"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

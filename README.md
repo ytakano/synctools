@@ -112,11 +112,11 @@ const NUM_THREADS: usize = 4;
 
 fn main() {
     // create a stack
-    let stack = Arc::new(lfstack::LFStack::<usize>::new());
+    let mut stack = Arc::new(lfstack::LFStack::<usize>::new());
     let mut v = Vec::new();
 
     for i in 0..NUM_THREADS {
-        let stack0 = stack.clone();
+        let mut stack0 = stack.clone();
         let t = std::thread::spawn(move || {
             if i & 1 == 0 { // even thread
                 for j in 0..NUM_LOOP {
