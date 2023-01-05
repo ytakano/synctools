@@ -3,7 +3,7 @@
 ## MCS Lock
 
 MCS lock is a fair and scalable mutual lock.
-This can be used as std::sync::Mutex.
+This can be used as `std::sync::Mutex`.
 
 ```rust
 use synctools::mcs;
@@ -24,7 +24,7 @@ fn main() {
             let mut node = mcs::MCSNode::new();
             for _ in 0..NUM_LOOP {
                 // lock and acquire the reference
-                let mut r = n0.lock(&mut node);
+                let mut r = n0.lock();
 
                 // increment atomically
                 *r += 1;
@@ -38,8 +38,7 @@ fn main() {
         t.join().unwrap();
     }
 
-    let mut node = mcs::MCSNode::new();
-    let r = n.lock(&mut node);
+    let r = n.lock();
     assert_eq!(NUM_LOOP * NUM_THREADS, *r);
 }
 ```

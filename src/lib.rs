@@ -21,10 +21,9 @@
 //!     for _ in 0..NUM_THREADS {
 //!         let n0 = n.clone();
 //!         let t = std::thread::spawn(move || {
-//!         let mut node = mcs::MCSNode::new();
 //!             for _ in 0..NUM_LOOP {
 //!                 // lock and acquire the reference
-//!                 let mut r = n0.lock(&mut node);
+//!                 let mut r = n0.lock();
 //!
 //!                 // increment atomically
 //!                 *r += 1;
@@ -38,8 +37,7 @@
 //!         t.join().unwrap();
 //!     }
 //!
-//!     let mut node = mcs::MCSNode::new();
-//!     let r = n.lock(&mut node);
+//!     let r = n.lock();
 //!     assert_eq!(NUM_LOOP * NUM_THREADS, *r);
 //! }
 //! ```
@@ -183,10 +181,9 @@ mod tests {
 
         for _ in 0..NUM_THREADS {
             let n0 = n.clone();
-            let mut node = mcs::MCSNode::new();
             let t = std::thread::spawn(move || {
                 for _ in 0..NUM_LOOP {
-                    let mut r = n0.lock(&mut node);
+                    let mut r = n0.lock();
                     *r += 1;
                 }
             });
@@ -198,8 +195,7 @@ mod tests {
             t.join().unwrap();
         }
 
-        let mut node = mcs::MCSNode::new();
-        let r = n.lock(&mut node);
+        let r = n.lock();
         assert_eq!(NUM_LOOP * NUM_THREADS, *r);
     }
 
