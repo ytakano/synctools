@@ -1,24 +1,14 @@
-use core::{
-    cell::UnsafeCell,
-    ops::{Deref, DerefMut},
-    ptr::null_mut,
-    sync::atomic::{fence, AtomicBool, AtomicPtr, Ordering},
-};
-use pin_project_lite::pin_project;
+use core::cell::UnsafeCell;
+use core::ops::{Deref, DerefMut};
+use core::ptr::null_mut;
+use core::sync::atomic::{fence, AtomicBool, AtomicPtr, Ordering};
 
 pub struct MCSLock<T> {
     last: AtomicPtr<MCSNode<T>>,
     data: UnsafeCell<T>,
 }
 
-pin_project! {
-    pub struct PinnedNode<T> {
-        #[pin]
-        pinned: MCSNode<T>
-    }
-}
-
-struct MCSNode<T> {
+pub struct MCSNode<T> {
     next: AtomicPtr<MCSNode<T>>,
     locked: AtomicBool,
 }
@@ -30,7 +20,7 @@ impl<T> Default for MCSNode<T> {
 }
 
 impl<T> MCSNode<T> {
-    fn new() -> MCSNode<T> {
+    pub fn new() -> MCSNode<T> {
         MCSNode {
             next: AtomicPtr::new(null_mut()),
             locked: AtomicBool::new(false),
@@ -47,34 +37,31 @@ impl<T> MCSLock<T> {
     }
 
     /// acquire lock
-    pub fn lock<'a>(&'a self) -> MCSLockGuard<T> {
-        let pinned_node = PinnedNode::new();
+    pub fn lock<'a>(&'a self, node: &'a mut MCSNode<T>) -> MCSLockGuard<T> {
+        node.next = AtomicPtr::new(null_mut());
+        node.locked = AtomicBool::new(false);
 
         // set myself as the last node
-        let mut guard = MCSLockGuard {
-            pinned_node,
+        let guard = MCSLockGuard {
+            node,
             mcs_lock: self,
         };
 
-        let ptr = &mut guard.pinned_node.pinned as *mut MCSNode<T>;
+        let ptr = guard.node as *mut MCSNode<T>;
         let prev = self.last.swap(ptr, Ordering::Relaxed);
 
         // if prev is null then nobody is trying to acquire lock,
         // otherwise enqueue myself
         if !prev.is_null() {
             // set acquiring lock
-            guard
-                .pinned_node
-                .pinned
-                .locked
-                .store(true, Ordering::Relaxed);
+            guard.node.locked.store(true, Ordering::Relaxed);
 
             // enqueue myself
             let prev = unsafe { &*prev };
             prev.next.store(ptr, Ordering::Relaxed);
 
             // spin until other thread set locked false
-            while guard.pinned_node.pinned.locked.load(Ordering::Relaxed) {
+            while guard.node.locked.load(Ordering::Relaxed) {
                 core::hint::spin_loop()
             }
         }
@@ -88,7 +75,7 @@ unsafe impl<T> Sync for MCSLock<T> {}
 unsafe impl<T> Send for MCSLock<T> {}
 
 pub struct MCSLockGuard<'a, T> {
-    pinned_node: PinnedNode<T>,
+    node: &'a mut MCSNode<T>,
     mcs_lock: &'a MCSLock<T>,
 }
 
@@ -101,14 +88,8 @@ impl<'a, T> Drop for MCSLockGuard<'a, T> {
     fn drop(&mut self) {
         // if next node is null and self is the last node
         // set the last node to null
-        if self
-            .pinned_node
-            .pinned
-            .next
-            .load(Ordering::Relaxed)
-            .is_null()
-        {
-            let ptr = &mut self.pinned_node.pinned as *mut MCSNode<T>;
+        if self.node.next.load(Ordering::Relaxed).is_null() {
+            let ptr = self.node as *mut MCSNode<T>;
             if self
                 .mcs_lock
                 .last
@@ -120,18 +101,12 @@ impl<'a, T> Drop for MCSLockGuard<'a, T> {
         }
 
         // other thread is entering lock and wait the execution
-        while self
-            .pinned_node
-            .pinned
-            .next
-            .load(Ordering::Relaxed)
-            .is_null()
-        {
+        while self.node.next.load(Ordering::Relaxed).is_null() {
             core::hint::spin_loop()
         }
 
         // make next thread executable
-        let next = unsafe { &mut *self.pinned_node.pinned.next.load(Ordering::Relaxed) };
+        let next = unsafe { &mut *self.node.next.load(Ordering::Relaxed) };
         next.locked.store(false, Ordering::Release);
     }
 }
@@ -147,13 +122,5 @@ impl<'a, T> Deref for MCSLockGuard<'a, T> {
 impl<'a, T> DerefMut for MCSLockGuard<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.mcs_lock.data.get() }
-    }
-}
-
-impl<T> PinnedNode<T> {
-    fn new() -> Self {
-        Self {
-            pinned: MCSNode::new(),
-        }
     }
 }
