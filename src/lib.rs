@@ -173,8 +173,8 @@ mod tests {
     use std::sync::Arc;
     use std::vec::Vec;
 
-    const NUM_LOOP: usize = 1000000;
-    const NUM_THREADS: usize = 4;
+    const NUM_LOOP: usize = 10000000;
+    const NUM_THREADS: usize = 8;
 
     #[test]
     fn test_mcs() {

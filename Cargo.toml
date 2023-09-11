@@ -1,6 +1,6 @@
 [package]
 name = "synctools"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Yuuki Takano <ytakanoster@gmail.com>"]
 edition = "2021"
 description = "Synchronization tools for no_std."

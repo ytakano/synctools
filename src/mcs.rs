@@ -48,25 +48,24 @@ impl<T> MCSLock<T> {
         };
 
         let ptr = guard.node as *mut MCSNode<T>;
-        let prev = self.last.swap(ptr, Ordering::Relaxed);
+        let prev = self.last.swap(ptr, Ordering::Acquire);
 
-        // if prev is null then nobody is trying to acquire lock,
-        // otherwise enqueue myself
-        if !prev.is_null() {
-            // set acquiring lock
-            guard.node.locked.store(true, Ordering::Relaxed);
-
-            // enqueue myself
-            let prev = unsafe { &*prev };
-            prev.next.store(ptr, Ordering::Relaxed);
-
-            // spin until other thread set locked false
-            while guard.node.locked.load(Ordering::Relaxed) {
-                core::hint::spin_loop()
-            }
+        // if prev is null then nobody is trying to acquire lock
+        if prev.is_null() {
+            return guard;
         }
 
-        fence(Ordering::Acquire);
+        // enqueue myself
+        let prev = unsafe { &*prev };
+        prev.next.store(ptr, Ordering::Relaxed);
+
+        fence(Ordering::SeqCst);
+
+        // spin until other thread sets locked true
+        while !guard.node.locked.load(Ordering::Acquire) {
+            core::hint::spin_loop();
+        }
+
         guard
     }
 }
@@ -98,16 +97,17 @@ impl<'a, T> Drop for MCSLockGuard<'a, T> {
             {
                 return;
             }
-        }
 
-        // other thread is entering lock and wait the execution
-        while self.node.next.load(Ordering::Relaxed).is_null() {
-            core::hint::spin_loop()
+            // other thread is entering lock and wait the execution
+            while self.node.next.load(Ordering::Relaxed).is_null() {
+                core::hint::spin_loop()
+            }
         }
 
         // make next thread executable
         let next = unsafe { &mut *self.node.next.load(Ordering::Relaxed) };
-        next.locked.store(false, Ordering::Release);
+        next.locked.store(true, Ordering::Release);
+        fence(Ordering::SeqCst);
     }
 }
 
