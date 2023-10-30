@@ -1,6 +1,6 @@
 [package]
 name = "synctools"
-version = "0.3.2"
+version = "0.3.3"
 authors = ["Yuuki Takano <ytakanoster@gmail.com>"]
 edition = "2021"
 description = "Synchronization tools for no_std."
@@ -13,6 +13,9 @@ homepage = "https://github.com/ytakano/synctools/"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
+[target.'cfg(loom)'.dependencies]
+loom = "0.7"
 
 [dev-dependencies]
 loom = "0.7"

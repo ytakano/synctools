@@ -1,9 +1,16 @@
-use loom::{sync::Arc, thread};
-use synctools::mcs::{MCSLock, MCSNode};
-
+/// # How to test
+///
+/// `RUST_BACKTRACE=1 RUSTFLAGS="--cfg loom"  cargo test --test test_mcslock --release`
+#[cfg(loom)]
 #[test]
 fn model_check_mcslock() {
     loom::model(|| {
+        #[cfg(loom)]
+        use loom::{sync::Arc, thread};
+
+        #[cfg(loom)]
+        use synctools::mcs::{MCSLock, MCSNode};
+
         let lock = Arc::new(MCSLock::new(0));
         let num_threads = 2;
         let num_iterations = 2;
@@ -15,7 +22,9 @@ fn model_check_mcslock() {
                     for _ in 0..num_iterations {
                         let mut node = MCSNode::new();
                         let mut guard = lock.lock(&mut node);
-                        *guard += 1;
+                        guard.with_mut(|data| unsafe {
+                            *data += 1;
+                        })
                     }
                 })
             })
@@ -26,6 +35,8 @@ fn model_check_mcslock() {
         }
 
         let mut node = MCSNode::new();
-        assert_eq!(num_threads * num_iterations, *lock.lock(&mut node));
+        let data = lock.lock(&mut node).with_mut(|data| unsafe { *data });
+
+        assert_eq!(num_threads * num_iterations, data);
     });
 }
